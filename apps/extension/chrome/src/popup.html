@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SKED 일정 추출기</title>
+  <style>
+    body {
+      width: 350px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #333;
+    }
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 16px;
+      color: #4CAF50;
+    }
+    .container {
+      margin-bottom: 16px;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .status {
+      margin-top: 12px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>SKED 일정 추출기</h1>
+  
+  <div class="container">
+    <div class="form-group">
+      <label for="title">제목</label>
+      <input type="text" id="title" name="title">
+    </div>
+    
+    <div class="form-group">
+      <label for="description">설명</label>
+      <textarea id="description" name="description"></textarea>
+    </div>
+    
+    <div class="form-group">
+      <label for="date">날짜</label>
+      <input type="date" id="date" name="date">
+    </div>
+    
+    <div class="form-group">
+      <label for="time">시간</label>
+      <input type="time" id="time" name="time">
+    </div>
+    
+    <div class="form-group">
+      <label for="location">장소</label>
+      <input type="text" id="location" name="location">
+    </div>
+    
+    <button id="download-button">캘린더로 내보내기</button>
+    
+    <div id="status" class="status hidden"></div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html> 

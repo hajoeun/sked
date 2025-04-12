@@ -1,0 +1,30 @@
+{
+  "name": "@sked/chrome-extension",
+  "version": "1.0.0",
+  "description": "일정 추출 Chrome 익스텐션",
+  "main": "dist/background.js",
+  "scripts": {
+    "build": "tsup src/background.ts src/popup.ts src/content.ts --format iife --clean && pnpm copy-assets",
+    "dev": "tsup src/background.ts src/popup.ts src/content.ts --format iife --watch --clean --onSuccess 'pnpm copy-assets'",
+    "copy-assets": "cp src/popup.html dist/ && copyfiles manifest.json dist && cp -r public/icons dist/icons && cp dist/background.global.js dist/background.js && cp dist/popup.global.js dist/popup.js && cp dist/content.global.js dist/content.js",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "chrome",
+    "extension",
+    "calendar"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "@types/node": "^20.11.24",
+    "copyfiles": "^2.4.1",
+    "eslint": "^8.56.0",
+    "tsup": "^8.0.2",
+    "typescript": "^5.3.3",
+    "vitest": "^1.3.1"
+  }
+}
