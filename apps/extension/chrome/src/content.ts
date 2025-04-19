@@ -17,11 +17,15 @@ class ContentExtractor {
    */
   setupMessageListener(): void {
     chrome.runtime.onMessage.addListener((message: Message, _, sendResponse) => {
-      if (message.type === 'EXTRACT_TEXT') {
+      // 팝업으로부터 텍스트 추출 요청을 받으면 처리
+      if (message.type === 'GET_PAGE_TEXT') {
         const text = this.extractPageText();
-        sendResponse({ text });
-        return true;
+        // 추출된 텍스트를 팝업으로 응답
+        sendResponse({ text }); 
+        // 비동기 응답을 위해 true 반환
+        return true; 
       }
+      // 다른 메시지 유형은 여기서 처리하거나 무시
     });
   }
 }
@@ -29,50 +33,8 @@ class ContentExtractor {
 // 콘텐츠 스크립트 초기화
 function initContentScript() {
   const extractor = new ContentExtractor();
+  // 메시지 리스너만 설정
   extractor.setupMessageListener();
-  
-  // 사용자 인터페이스에 '일정 만들기' 버튼 추가
-  const addExtractButton = () => {
-    // 기존 버튼이 있으면 제거
-    const existingButton = document.getElementById('sked-extract-button');
-    if (existingButton) {
-      existingButton.remove();
-    }
-
-    // 새 버튼 생성
-    const button = document.createElement('button');
-    button.id = 'sked-extract-button';
-    button.textContent = '일정 만들기';
-    button.style.position = 'fixed';
-    button.style.bottom = '20px';
-    button.style.right = '20px';
-    button.style.zIndex = '9999';
-    button.style.padding = '10px 15px';
-    button.style.backgroundColor = '#4CAF50';
-    button.style.color = 'white';
-    button.style.border = 'none';
-    button.style.borderRadius = '4px';
-    button.style.cursor = 'pointer';
-    button.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
-
-    // 버튼 클릭 이벤트
-    button.addEventListener('click', () => {
-      const text = extractor.extractPageText();
-      chrome.runtime.sendMessage({ 
-        type: 'TEXT_EXTRACTED', 
-        payload: text 
-      });
-    });
-
-    document.body.appendChild(button);
-  };
-
-  // 페이지 로드 완료 후 버튼 추가
-  if (document.readyState === 'complete') {
-    addExtractButton();
-  } else {
-    window.addEventListener('load', addExtractButton);
-  }
 }
 
 // 스크립트 실행
