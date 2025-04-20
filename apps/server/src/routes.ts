@@ -1,7 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { EventParser } from '@sked/parse-core';
 import { ICSGenerator } from '@sked/ics-generator';
-import { DownloadRequestBody, ParseRequestBody } from './types';
+import { Scraper } from '@sked/scrape-core';
+import { DownloadRequestBody, ParseRequestBody, ScrapeQueryString } from './types';
 
 /**
  * API 라우트 등록
@@ -11,11 +12,44 @@ import { DownloadRequestBody, ParseRequestBody } from './types';
 export function registerRoutes(
   server: FastifyInstance, 
   parser: EventParser,
-  icsGenerator: ICSGenerator
+  icsGenerator: ICSGenerator,
+  scraper: Scraper
 ): void {
   // 건강 체크 라우트
   server.get('/health', async (_, reply) => {
     reply.send({ status: 'ok' });
+  });
+
+  // 웹 페이지 스크래핑 API (GET 요청)
+  server.get('/api/scrape', async (request: FastifyRequest<{ Querystring: ScrapeQueryString }>, reply: FastifyReply) => {
+    try {
+      const { url } = request.query;
+      
+      if (!url) {
+        return reply.code(400).send({ error: 'URL 쿼리 파라미터가 필요합니다.' });
+      }
+
+      // URL 유효성 검사 (간단하게)
+      try {
+        new URL(url);
+      } catch (e) {
+        return reply.code(400).send({ error: '유효하지 않은 URL 형식입니다.' });
+      }
+
+      // [Dependency Inversion] Scraper 인스턴스를 주입받아 사용
+      const markdownContent = await scraper.scrapeUrl(url);
+      
+      // 성공 시 마크다운 텍스트 반환 (JSON 객체로 감싸서)
+      return reply.send({ markdown: markdownContent });
+
+    } catch (error) {
+      server.log.error('Error in /api/scrape:', error); // 에러 로깅 추가
+      if (error instanceof Error) {
+        // 스크래핑 자체 오류 메시지 포함
+        return reply.code(500).send({ error: '스크래핑 처리 중 오류가 발생했습니다.', details: error.message });
+      }
+      return reply.code(500).send({ error: '알 수 없는 스크래핑 오류가 발생했습니다.' });
+    }
   });
 
   // 텍스트에서 일정 정보 추출 API

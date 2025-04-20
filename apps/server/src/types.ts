@@ -22,8 +22,15 @@ export interface ParseRequestBody {
  */
 export interface DownloadRequestBody {
   title: string;
-  description: string;
+  description?: string;
   date: string;
   time: string;
-  location: string;
+  location?: string;
+}
+
+/**
+ * /api/scrape 요청 쿼리스트링 타입
+ */
+export interface ScrapeQueryString {
+  url: string;
 } 

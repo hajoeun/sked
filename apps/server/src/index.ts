@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { EventParser } from '@sked/parse-core';
 import { ICSGenerator } from '@sked/ics-generator';
+import { Scraper } from '@sked/scrape-core';
 import { loadConfig, validateConfig } from './config';
 import { registerRoutes } from './routes';
 import * as dotenv from 'dotenv';
@@ -61,23 +62,31 @@ async function startServer() {
 
     // Fastify 서버 인스턴스 생성
     const server = Fastify({
-      logger: true
+      logger: {
+        level: config.LOG_LEVEL || 'info',
+        transport: config.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
+      },
+      // AJV 설정 추가 (Fastify v4 권장)
+      ajv: {
+        customOptions: {
+          strict: 'log',
+          keywords: ['kind', 'modifier']
+        }
+      }
     });
 
     // CORS 설정
     await server.register(cors, {
-      origin: config.CORS_ORIGIN
+      origin: config.CORS_ORIGIN || '*' // 실제 배포 시에는 특정 도메인 지정 권장
     });
 
-    // 파서 및 ICS 생성기 인스턴스 생성
-    const parser = new EventParser({
-      apiKey: config.OPENAI_API_KEY
-    });
-
+    // 서비스 인스턴스 생성
+    const parser = new EventParser({ apiKey: config.OPENAI_API_KEY });
     const icsGenerator = new ICSGenerator();
+    const scraper = new Scraper(config.FIRECRAWL_API_KEY);
 
-    // 라우트 등록
-    registerRoutes(server, parser, icsGenerator);
+    // 라우트 등록 시 scraper 인스턴스 전달
+    registerRoutes(server, parser, icsGenerator, scraper);
 
     // 서버 시작
     await server.listen({
