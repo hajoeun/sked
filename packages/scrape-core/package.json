@@ -21,8 +21,8 @@
     "@sked/eslint-config": "workspace:*",
     "@sked/typescript-config": "workspace:*",
     "tsup": "^8",
-    "typescript": "^5",
-    "zod": "^3.23.0"
+    "typescript": "^5.3.3",
+    "zod": "3.24.2"
   },
   "publishConfig": {
     "access": "public"
