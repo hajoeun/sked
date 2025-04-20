@@ -1,0 +1,37 @@
+{
+  "name": "@sked/scrape-core",
+  "version": "1.0.0",
+  "description": "Core module for scraping web content for Sked",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "clean": "rm -rf dist .turbo node_modules",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+  },
+  "keywords": ["sked", "scraper", "firecrawl", "playwright"],
+  "author": "Your Name <you@example.com>",
+  "license": "ISC",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@sked/eslint-config": "workspace:*",
+    "@sked/typescript-config": "workspace:*",
+    "tsup": "^8",
+    "typescript": "^5",
+    "zod": "^3.23.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+        "types": "./dist/index.d.ts",
+        "require": "./dist/index.js",
+        "import": "./dist/index.mjs"
+    }
+  }
+} 
