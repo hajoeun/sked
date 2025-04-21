@@ -41,8 +41,10 @@ function loadEnv() {
     console.log(`환경 변수 파일 로드: ${envFile.path}`);
     dotenv.config({ path: envFile.path });
   } else {
-    console.warn('환경 변수 파일을 찾을 수 없습니다. process.env 값을 사용합니다.');
-    // dotenv.config(); // 기본 .env 파일 로드 시도 대신 process.env 사용
+    // Vercel 환경이 아닐 때만 경고 메시지 출력
+    if (!process.env.VERCEL) {
+      console.warn('환경 변수 파일을 찾을 수 없습니다. process.env 값을 사용합니다.');
+    }
   }
 }
 
