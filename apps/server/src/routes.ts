@@ -88,33 +88,13 @@ export function registerRoutes(
     try {
       const eventData = request.body;
       
-      const icsContent = await icsGenerator.generateICS(eventData);
-      
-      // 파일명에 특수문자나 공백이 있을 경우를 대비해 안전한 파일명 생성
-      const safeFilename = encodeURIComponent(eventData.title).replace(/[%]/g, '_') + '.ics';
-      
-      reply.header('Content-Type', 'text/calendar');
-      reply.header('Content-Disposition', `attachment; filename=${safeFilename}`);
-      return reply.send(icsContent);
-    } catch (error) {
-      if (error instanceof Error) {
-        return reply.code(500).send({ error: error.message });
-      }
-      return reply.code(500).send({ error: '알 수 없는 오류가 발생했습니다.' });
-    }
-  });
-  
-  // 일정 정보를 ICS 파일로 변환하여 다운로드 API (GET 메서드)
-  server.get('/api/download', async (request: FastifyRequest<{ Querystring: DownloadRequestBody }>, reply: FastifyReply) => {
-    try {
-      const eventData = request.query;
-      
-      // 필수 필드 확인
-      if (!eventData.title || !eventData.date || !eventData.time) {
-        return reply.code(400).send({ error: '필수 정보(제목, 날짜, 시간)가 누락되었습니다.' });
-      }
-      
-      const icsContent = await icsGenerator.generateICS(eventData);
+      // description 및 location이 undefined일 경우 빈 문자열로 기본값 설정
+      const eventDataForICS = {
+          ...eventData,
+          description: eventData.description ?? '', 
+          location: eventData.location ?? '', // location 기본값 추가
+      };
+      const icsContent = await icsGenerator.generateICS(eventDataForICS);
       
       // 파일명에 특수문자나 공백이 있을 경우를 대비해 안전한 파일명 생성
       const safeFilename = encodeURIComponent(eventData.title).replace(/[%]/g, '_') + '.ics';
