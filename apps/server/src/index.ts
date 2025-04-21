@@ -1,4 +1,4 @@
-import Fastify from 'fastify';
+import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { EventParser } from '@sked/parse-core';
 import { ICSGenerator } from '@sked/ics-generator';
@@ -41,65 +41,95 @@ function loadEnv() {
     console.log(`환경 변수 파일 로드: ${envFile.path}`);
     dotenv.config({ path: envFile.path });
   } else {
-    console.warn('환경 변수 파일을 찾을 수 없습니다. 기본값을 사용합니다.');
-    dotenv.config(); // 기본 .env 파일 로드 시도
+    console.warn('환경 변수 파일을 찾을 수 없습니다. process.env 값을 사용합니다.');
+    // dotenv.config(); // 기본 .env 파일 로드 시도 대신 process.env 사용
   }
 }
 
-/**
- * 메인 서버 시작 함수
- * [SOLID: Single Responsibility]
- * 서버 설정과 시작 책임
- */
-async function startServer() {
-  try {
-    // 환경 변수 로드
-    loadEnv();
-    
-    // 환경 설정 로드
-    const config = loadConfig();
-    validateConfig(config);
+// 전역 스코프에서 서버 인스턴스와 설정을 준비합니다.
+let server: FastifyInstance | null = null;
+let config: ReturnType<typeof loadConfig> | null = null;
 
-    // Fastify 서버 인스턴스 생성
-    const server = Fastify({
-      logger: {
-        level: config.LOG_LEVEL || 'info',
-        transport: config.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
-      },
-      // AJV 설정 추가 (Fastify v4 권장)
-      ajv: {
-        customOptions: {
-          strict: 'log',
-          keywords: ['kind', 'modifier']
-        }
+async function initializeServer(): Promise<FastifyInstance> {
+  if (server) {
+    return server;
+  }
+
+  // 환경 변수 로드 (한 번만)
+  loadEnv();
+
+  // 환경 설정 로드
+  config = loadConfig();
+  validateConfig(config);
+
+  // Fastify 서버 인스턴스 생성
+  server = Fastify({
+    logger: {
+      level: config.LOG_LEVEL || 'info',
+      transport: config.NODE_ENV !== 'production' ? { target: 'pino-pretty' } : undefined,
+    },
+    ajv: {
+      customOptions: {
+        strict: 'log',
+        keywords: ['kind', 'modifier']
       }
-    });
+    }
+  });
 
-    // CORS 설정
-    await server.register(cors, {
-      origin: config.CORS_ORIGIN || '*' // 실제 배포 시에는 특정 도메인 지정 권장
-    });
+  // CORS 설정
+  await server.register(cors, {
+    origin: config.CORS_ORIGIN || '*'
+  });
 
-    // 서비스 인스턴스 생성
-    const parser = new EventParser({ apiKey: config.OPENAI_API_KEY });
-    const icsGenerator = new ICSGenerator();
-    const scraper = new Scraper(config.FIRECRAWL_API_KEY);
+  // 서비스 인스턴스 생성
+  const parser = new EventParser({ apiKey: config.OPENAI_API_KEY });
+  const icsGenerator = new ICSGenerator();
+  const scraper = new Scraper(config.FIRECRAWL_API_KEY);
 
-    // 라우트 등록 시 scraper 인스턴스 전달
-    registerRoutes(server, parser, icsGenerator, scraper);
+  // 라우트 등록
+  registerRoutes(server, parser, icsGenerator, scraper);
 
-    // 서버 시작
-    await server.listen({
-      port: config.PORT,
-      host: config.HOST
-    });
+  await server.ready(); // 서버가 준비될 때까지 기다립니다.
+  return server;
+}
 
-    console.log(`서버가 시작되었습니다. http://${config.HOST === '0.0.0.0' ? 'localhost' : config.HOST}:${config.PORT}`);
+// 1) Vercel 서버리스 핸들러
+export default async function handler(req: any, res: any) {
+  try {
+    const initializedServer = await initializeServer();
+    // 요청을 Fastify 인스턴스에 전달
+    initializedServer.server.emit('request', req, res);
   } catch (error) {
-    console.error('서버 시작 중 오류가 발생했습니다:', error);
-    process.exit(1);
+     // 초기화 또는 요청 처리 중 오류 발생 시
+    console.error('Handler error:', error);
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify({ error: 'Internal Server Error during handling request.' }));
   }
 }
 
-// 서버 시작
-startServer(); 
+
+// 2) 로컬 개발 모드에서는 listen 호출 (process.env.VERCEL이 설정되지 않은 경우)
+if (!process.env.VERCEL) {
+  initializeServer().then(initializedServer => {
+    if (!config) {
+       console.error('Config not loaded for local startup.');
+       process.exit(1);
+       return;
+    }
+    const port = config.PORT;
+    const host = config.HOST;
+
+    initializedServer.listen({ port, host })
+      .then(() => {
+        console.log(`Development server running on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
+      })
+      .catch((err) => {
+        console.error('Failed to start local server:', err);
+        process.exit(1);
+      });
+  }).catch(err => {
+     console.error('Failed to initialize server for local startup:', err);
+     process.exit(1);
+  });
+} 
