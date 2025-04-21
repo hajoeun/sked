@@ -5,6 +5,7 @@ import { ICSGenerator } from '@sked/ics-generator';
 import { Scraper } from '@sked/scrape-core';
 import { loadConfig, validateConfig } from './config';
 import { registerRoutes } from './routes';
+import { createAuthHook } from './middleware/auth';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -77,6 +78,10 @@ async function initializeServer(): Promise<FastifyInstance> {
       }
     }
   });
+
+  // 인증 훅 등록 (CORS 및 라우트 등록 전에!)
+  const authenticate = createAuthHook(config);
+  server.addHook('preHandler', authenticate);
 
   // CORS 설정
   await server.register(cors, {

@@ -14,7 +14,8 @@ const envSchema = z.object({
   CORS_ORIGIN: z.string().optional(), // CORS 출처 (선택 사항)
   SKED_API_SECRET: z.string().optional(), // 웹 클라이언트 인증용 (선택 사항)
   OPENAI_API_KEY: z.string().min(1, 'OpenAI API Key가 필요합니다.'),
-  FIRECRAWL_API_KEY: z.string().min(1, 'Firecrawl API Key가 필요합니다.') // Firecrawl 키 추가
+  FIRECRAWL_API_KEY: z.string().min(1, 'Firecrawl API Key가 필요합니다.'), // Firecrawl 키 추가
+  SKED_API_KEY: z.string().min(1, 'SKED_API_KEY가 필요합니다.') // 서버 간 통신 인증 키
 });
 
 // 파싱된 환경 변수 타입 추론
@@ -44,7 +45,7 @@ export function loadConfig(): EnvConfig {
   parsedConfig = parseResult.data;
   console.log('✅ Server configuration loaded successfully.');
   // 실제 키 값 로깅은 보안상 주의
-  // console.log('Loaded config:', { ...parsedConfig, OPENAI_API_KEY: '***', FIRECRAWL_API_KEY: '***', SKED_API_SECRET: '***' }); 
+  // console.log('Loaded config:', { ...parsedConfig, OPENAI_API_KEY: '***', FIRECRAWL_API_KEY: '***', SKED_API_SECRET: '***', SKED_API_KEY: '***' });
   return parsedConfig;
 }
 
