@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { EventParser } from '@sked/parse-core';
 import { ICSGenerator } from '@sked/ics-generator';
 import { Scraper } from '@sked/scrape-core';
-import { DownloadRequestBody, ParseRequestBody, ScrapeQueryString } from './types';
+import { DownloadRequestBody, ParseRequestBody, ScrapeRequestBody } from './types';
 
 /**
  * API 라우트 등록
@@ -21,9 +21,9 @@ export function registerRoutes(
   });
 
   // 웹 페이지 스크래핑 API (GET 요청)
-  server.get('/api/scrape', async (request: FastifyRequest<{ Querystring: ScrapeQueryString }>, reply: FastifyReply) => {
+  server.post('/api/scrape', async (request: FastifyRequest<{ Body: ScrapeRequestBody }>, reply: FastifyReply) => {
     try {
-      const { url } = request.query;
+      const { url } = request.body;
       
       if (!url) {
         return reply.code(400).send({ error: 'URL 쿼리 파라미터가 필요합니다.' });

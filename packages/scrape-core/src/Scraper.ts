@@ -1,5 +1,3 @@
-import { env } from './env';
-
 const FIRECRAWL_API_ENDPOINT = 'https://api.firecrawl.dev/v1/scrape';
 
 /**
@@ -16,7 +14,7 @@ export class Scraper {
    * @param apiKey - Firecrawl API 키 (선택 사항, 제공되지 않으면 환경 변수 사용)
    */
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || env.FIRECRAWL_API_KEY;
+    this.apiKey = apiKey;
 
     if (!this.apiKey) {
       console.warn('⚠️ Firecrawl API key is not provided. Scraping will likely fail.');

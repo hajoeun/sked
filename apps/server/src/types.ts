@@ -31,6 +31,6 @@ export interface DownloadRequestBody {
 /**
  * /api/scrape 요청 쿼리스트링 타입
  */
-export interface ScrapeQueryString {
+export interface ScrapeRequestBody {
   url: string;
 } 
