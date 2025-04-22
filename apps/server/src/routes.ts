@@ -2,7 +2,8 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { EventParser } from '@sked/parse-core';
 import { ICSGenerator, CalendarEvent } from '@sked/ics-generator';
 import { Scraper } from '@sked/scrape-core';
-import { ParseRequestBody, ScrapeRequestBody } from './types';
+import { PreviewService } from '@sked/preview-core';
+import { ParseRequestBody, ScrapeRequestBody, MetadataRequestBody } from './types';
 
 /**
  * API 라우트 등록
@@ -13,7 +14,8 @@ export function registerRoutes(
   server: FastifyInstance, 
   parser: EventParser,
   icsGenerator: ICSGenerator,
-  scraper: Scraper
+  scraper: Scraper,
+  previewService: PreviewService
 ): void {
   // 건강 체크 라우트
   server.get('/health', async (_, reply) => {
@@ -127,6 +129,35 @@ export function registerRoutes(
         return reply.code(500).send({ error: 'ICS 파일 생성 중 오류가 발생했습니다.', details: error.message });
       }
       return reply.code(500).send({ error: '알 수 없는 오류가 발생했습니다.' });
+    }
+  });
+
+  // 웹 페이지 메타데이터 조회 API
+  server.post('/api/metadata', async (request: FastifyRequest<{ Body: MetadataRequestBody }>, reply: FastifyReply) => {
+    try {
+      const { url } = request.body;
+
+      if (!url || typeof url !== 'string') {
+        return reply.code(400).send({ error: '요청 본문에 유효한 URL이 필요합니다.' });
+      }
+
+      try {
+        new URL(url);
+      } catch (e) {
+        return reply.code(400).send({ error: '유효하지 않은 URL 형식입니다.' });
+      }
+
+      // 주입된 previewService 사용
+      const metadata = await previewService.fetchMetadata(url);
+
+      return reply.send(metadata);
+
+    } catch (error) {
+      server.log.error('Error in /api/metadata:', error);
+      if (error instanceof Error) {
+        return reply.code(500).send({ error: '메타데이터 처리 중 오류가 발생했습니다.', details: error.message });
+      }
+      return reply.code(500).send({ error: '알 수 없는 메타데이터 오류가 발생했습니다.' });
     }
   });
 } 

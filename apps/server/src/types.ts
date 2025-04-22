@@ -18,8 +18,15 @@ export interface ParseRequestBody {
 }
 
 /**
- * /api/scrape 요청 쿼리스트링 타입
+ * /api/scrape 요청 본문 타입
  */
 export interface ScrapeRequestBody {
+  url: string;
+}
+
+/**
+ * /api/metadata 요청 본문 타입
+ */
+export interface MetadataRequestBody {
   url: string;
 } 

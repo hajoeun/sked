@@ -9,6 +9,7 @@ import { createAuthHook } from './middleware/auth';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import * as fs from 'fs';
+import { PreviewService } from '@sked/preview-core';
 
 // 환경 변수 로드
 function loadEnv() {
@@ -92,9 +93,10 @@ async function initializeServer(): Promise<FastifyInstance> {
   const parser = new EventParser({ apiKey: config.OPENAI_API_KEY });
   const icsGenerator = new ICSGenerator();
   const scraper = new Scraper(config.FIRECRAWL_API_KEY);
-
+  const previewService = new PreviewService();
+  
   // 라우트 등록
-  registerRoutes(server, parser, icsGenerator, scraper);
+  registerRoutes(server, parser, icsGenerator, scraper, previewService);
 
   await server.ready(); // 서버가 준비될 때까지 기다립니다.
   return server;
