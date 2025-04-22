@@ -14,10 +14,12 @@ export default function HomePage() {
   const [progressStep, setProgressStep] = useState<ProgressStep>('idle')
   const [editedEventData, setEditedEventData] = useState<EventData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [originalUrl, setOriginalUrl] = useState<string>('')
 
   // URL 입력 폼 제출 핸들러
   const handleUrlSubmit = async ({ url }: { url: string }) => {
     console.log('Submitting URL:', url)
+    setOriginalUrl(url)
     setIsLoading(true)
     setProgressStep('scraping')
     setError(null)
@@ -92,8 +94,18 @@ export default function HomePage() {
       setProgressStep('error')
       return
     }
+    if (!originalUrl) {
+      setError('원본 URL 정보가 없습니다. 다시 시도해주세요.')
+      setProgressStep('error')
+      return
+    }
 
-    console.log('Initiating ICS download for:', editedEventData)
+    console.log(
+      'Initiating ICS download for:',
+      editedEventData,
+      'from URL:',
+      originalUrl
+    )
     setIsLoading(true)
     setError(null)
     // 다운로드 시작 시 progressStep을 명시적으로 변경할 필요는 없을 수 있음
@@ -106,7 +118,7 @@ export default function HomePage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(editedEventData),
+        body: JSON.stringify({ eventData: editedEventData, url: originalUrl }),
       })
 
       if (!response.ok) {
@@ -122,14 +134,56 @@ export default function HomePage() {
 
       // 2. 파일 이름 추출 (Content-Disposition 헤더)
       const disposition = response.headers.get('content-disposition')
-      let filename = `${editedEventData.title || 'event'}.ics` // 기본 파일명
-      if (disposition && disposition.indexOf('attachment') !== -1) {
-        const filenameRegex = /filename[^;=\n]*=((['"])(.*?)\2|[^;\n]*)/
-        const matches = filenameRegex.exec(disposition)
-        if (matches != null && matches[3]) {
-          filename = matches[3]
+      let filename = 'event.ics' // 기본 파일명
+
+      if (disposition) {
+        let filenameMatch = disposition.match(/filename\*=UTF-8''([^";]+)/i) // filename* 먼저 확인 (RFC 6266) - 수정: 따옴표 제외
+        if (filenameMatch && filenameMatch[1]) {
+          try {
+            filename = decodeURIComponent(filenameMatch[1]) // 퍼센트 디코딩
+          } catch (e) {
+            console.error('Error decoding filename*:', e)
+            // 디코딩 실패 시 fallback 사용
+            filenameMatch = null // 아래 filename= 부분을 다시 시도하도록 함
+          }
+        } else {
+          // filename* 형식이 약간 다를 수 있음 (따옴표 포함 등), 추가 정규식 시도
+          filenameMatch = disposition.match(/filename\*=[^']+''"?([^";]+)"?/i)
+          if (filenameMatch && filenameMatch[1]) {
+            try {
+              filename = decodeURIComponent(filenameMatch[1])
+            } catch (e) {
+              console.error('Error decoding filename* (alt):', e)
+              filenameMatch = null
+            }
+          }
+        }
+
+        // filename*이 없거나 디코딩 실패 시 filename= 확인
+        if (!filenameMatch || !filename || filename === 'event.ics') {
+          // filename이 유효하게 설정되지 않은 경우
+          filenameMatch = disposition.match(/filename="([^"]+)"/i) // 큰따옴표로 감싸진 filename
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1]
+          } else {
+            filenameMatch = disposition.match(/filename=([^";]+)/i) // 따옴표 없는 filename, 세미콜론 전까지
+            if (filenameMatch && filenameMatch[1]) {
+              filename = filenameMatch[1] // 이 경우, 서버에서 보낸 밑줄 이름이 추출될 수 있음
+            }
+          }
         }
       }
+
+      // 제목이 없고 disposition 헤더도 없을 경우 대비한 최종 fallback
+      if (!filename || filename === '.ics' || filename.trim() === '') {
+        filename = `${editedEventData?.title || 'event'}.ics`
+      }
+      // 확장자가 없는 경우 추가
+      if (!filename.toLowerCase().endsWith('.ics')) {
+        filename += '.ics'
+      }
+
+      console.log('Final filename for download:', filename)
 
       // 3. Blob 생성 및 다운로드 트리거
       const blob = await response.blob()

@@ -39,6 +39,7 @@ export class ICSGenerator {
           start: startDateArray,
           end: endDateArray,
           location: event.location,
+          url: event.url,
           productId: this.productId,
           calName: '일정',
           status: 'CONFIRMED',

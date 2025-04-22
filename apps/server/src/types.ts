@@ -18,17 +18,6 @@ export interface ParseRequestBody {
 }
 
 /**
- * 일정 다운로드 요청 타입
- */
-export interface DownloadRequestBody {
-  title: string;
-  description?: string;
-  date: string;
-  time: string;
-  location?: string;
-}
-
-/**
  * /api/scrape 요청 쿼리스트링 타입
  */
 export interface ScrapeRequestBody {

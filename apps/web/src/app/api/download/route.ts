@@ -5,7 +5,7 @@ import { EventData } from '@/components/sked/PreviewCard'; // EventData 타입 �
 export async function POST(request: NextRequest) {
   try {
     // 1. 클라이언트로부터 수정된 일정 데이터 받기
-    const eventData: EventData = await request.json();
+    const { eventData, url }: { eventData: EventData, url: string } = await request.json();
 
     // 2. 데이터 유효성 검사 (간단하게 필수 필드만 확인)
     if (!eventData || !eventData.title || !eventData.date || !eventData.time) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     // lib/api.ts의 fetchSkedApi는 서버 환경에서 실행되므로 API 키 포함됨
     const backendResponse = await fetchSkedApi('/api/download', {
       method: 'POST',
-      body: JSON.stringify(eventData),
+      body: JSON.stringify({ eventData, url }),
       // headers는 fetchSkedApi 내부에서 자동으로 설정됨 (Content-Type: application/json 등)
     });
 

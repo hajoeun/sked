@@ -1,8 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { EventParser } from '@sked/parse-core';
-import { ICSGenerator } from '@sked/ics-generator';
+import { ICSGenerator, CalendarEvent } from '@sked/ics-generator';
 import { Scraper } from '@sked/scrape-core';
-import { DownloadRequestBody, ParseRequestBody, ScrapeRequestBody } from './types';
+import { ParseRequestBody, ScrapeRequestBody } from './types';
 
 /**
  * API 라우트 등록
@@ -84,27 +84,47 @@ export function registerRoutes(
   });
 
   // 일정 정보를 ICS 파일로 변환하여 다운로드 API (POST 메서드)
-  server.post('/api/download', async (request: FastifyRequest<{ Body: DownloadRequestBody }>, reply: FastifyReply) => {
+  server.post('/api/download', async (
+    request: FastifyRequest<{ Body: { eventData: Omit<CalendarEvent, 'url'>, url: string } }>, 
+    reply: FastifyReply
+  ) => {
     try {
-      const eventData = request.body;
+      // 요청 본문에서 eventData와 url 분리
+      const { eventData, url } = request.body; 
+
+      // url 값 존재 여부 확인 (필수값)
+      if (!url) {
+        return reply.code(400).send({ error: 'URL is required in the request body.' });
+      }
       
       // description 및 location이 undefined일 경우 빈 문자열로 기본값 설정
-      const eventDataForICS = {
+      // CalendarEvent 타입에 맞게 url 속성 추가
+      const eventDataForICS: CalendarEvent = {
           ...eventData,
           description: eventData.description ?? '', 
-          location: eventData.location ?? '', // location 기본값 추가
+          location: eventData.location ?? '', 
+          url: url // url 추가
       };
+
+      // icsGenerator.generateICS 호출 시 CalendarEvent 타입 객체 전달
       const icsContent = await icsGenerator.generateICS(eventDataForICS);
       
       // 파일명에 특수문자나 공백이 있을 경우를 대비해 안전한 파일명 생성
-      const safeFilename = encodeURIComponent(eventData.title).replace(/[%]/g, '_') + '.ics';
+      const title = eventData.title || 'event';
+      // filename* 값에는 퍼센트 인코딩된 UTF-8 문자열 사용
+      const encodedTitleForHeader = encodeURIComponent(title); 
+      // filename 값에는 간단한 ASCII 대체 문자열 사용 (Fallback용)
+      const asciiSafeTitle = title.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 50); // 예시: ASCII 문자와 일부 특수문자만 남김
       
       reply.header('Content-Type', 'text/calendar');
-      reply.header('Content-Disposition', `attachment; filename=${safeFilename}`);
+      // filename*을 사용하여 UTF-8 파일명 명시, filename은 호환성 위해 유지
+      reply.header('Content-Disposition', `attachment; filename="${asciiSafeTitle}.ics"; filename*=UTF-8''${encodedTitleForHeader}.ics`);
       return reply.send(icsContent);
     } catch (error) {
+      server.log.error('Error in /api/download:', error); // 에러 로깅 추가
       if (error instanceof Error) {
-        return reply.code(500).send({ error: error.message });
+        // ICS 생성 실패 또는 기타 오류 메시지 포함
+        return reply.code(500).send({ error: 'ICS 파일 생성 중 오류가 발생했습니다.', details: error.message });
       }
       return reply.code(500).send({ error: '알 수 없는 오류가 발생했습니다.' });
     }

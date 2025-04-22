@@ -9,6 +9,7 @@ export interface CalendarEvent {
   date: string; // YYYY-MM-DD 형식
   time: string; // HH:MM 형식
   location: string;
+  url: string; // 일정 원본 URL
 }
 
 /**
