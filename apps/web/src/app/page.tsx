@@ -8,6 +8,7 @@ import {
 } from '@/components/sked/ProgressIndicator'
 import { PreviewCard, EventData } from '@/components/sked/PreviewCard'
 import { DownloadButton } from '@/components/sked/DownloadButton'
+import { Loader } from '@/components/sked/Loader'
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -106,7 +107,6 @@ export default function HomePage() {
       'from URL:',
       originalUrl
     )
-    setIsLoading(true)
     setError(null)
     // 다운로드 시작 시 progressStep을 명시적으로 변경할 필요는 없을 수 있음
     // setProgressStep('downloading'); // 필요하다면 ProgressStep에 추가
@@ -205,8 +205,6 @@ export default function HomePage() {
       console.error('Error during download:', err)
       setError(error.message || '파일 다운로드 중 오류가 발생했습니다.')
       setProgressStep('error')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -222,10 +220,14 @@ export default function HomePage() {
 
         <UrlInputForm onSubmit={handleUrlSubmit} isLoading={isLoading} />
 
-        <ProgressIndicator
-          currentStep={progressStep}
-          message={error || undefined}
-        />
+        {progressStep !== 'idle' && (
+          <ProgressIndicator
+            currentStep={progressStep}
+            message={error || undefined}
+          />
+        )}
+
+        {isLoading && <Loader />}
 
         {editedEventData && progressStep !== 'error' && (
           <PreviewCard
