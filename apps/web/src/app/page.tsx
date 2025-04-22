@@ -9,34 +9,19 @@ import {
 import { PreviewCard, EventData } from '@/components/sked/PreviewCard'
 import { DownloadButton } from '@/components/sked/DownloadButton'
 
-// 기본 빈 이벤트 데이터
-const initialEventData: EventData = {
-  title: '',
-  description: '',
-  date: '', // YYYY-MM-DD
-  time: '', // HH:MM
-  location: '',
-}
-
 export default function HomePage() {
-  const [url, setUrl] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [progressStep, setProgressStep] = useState<ProgressStep>('idle')
-  const [scrapedText, setScrapedText] = useState<string | null>(null)
-  const [eventData, setEventData] = useState<EventData | null>(null)
   const [editedEventData, setEditedEventData] = useState<EventData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // URL 입력 폼 제출 핸들러
   const handleUrlSubmit = async ({ url }: { url: string }) => {
     console.log('Submitting URL:', url)
-    setUrl(url)
     setIsLoading(true)
     setProgressStep('scraping')
     setError(null)
-    setEventData(null)
     setEditedEventData(null)
-    setScrapedText(null)
 
     try {
       // 1. 스크래핑 API 호출 (/api/scrape 프록시 사용)
@@ -62,7 +47,6 @@ export default function HomePage() {
       if (!textToParse) {
         throw new Error('No text content found after scraping.')
       }
-      setScrapedText(textToParse)
       setProgressStep('parsing')
 
       // 2. 파싱 API 호출 (/api/parse 프록시 사용)
@@ -81,12 +65,12 @@ export default function HomePage() {
       const parsedData: EventData = await parseResponse.json()
       console.log('Parsing successful:', parsedData)
 
-      setEventData(parsedData)
       setEditedEventData(parsedData) // 초기 편집 데이터 설정
       setProgressStep('editing') // 편집 단계로 변경
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
       console.error('Error during process:', err)
-      setError(err.message || 'An unexpected error occurred.')
+      setError(error.message || 'An unexpected error occurred.')
       setProgressStep('error')
     } finally {
       setIsLoading(false)
@@ -162,9 +146,10 @@ export default function HomePage() {
 
       console.log('ICS file download triggered successfully:', filename)
       setProgressStep('done') // 다운로드 완료 상태로 변경
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err))
       console.error('Error during download:', err)
-      setError(err.message || '파일 다운로드 중 오류가 발생했습니다.')
+      setError(error.message || '파일 다운로드 중 오류가 발생했습니다.')
       setProgressStep('error')
     } finally {
       setIsLoading(false)
@@ -190,7 +175,6 @@ export default function HomePage() {
 
         {editedEventData && progressStep !== 'error' && (
           <PreviewCard
-            initialData={eventData!} // eventData는 이 시점에 null이 아님
             editedData={editedEventData}
             onDataChange={handlePreviewDataChange}
           />

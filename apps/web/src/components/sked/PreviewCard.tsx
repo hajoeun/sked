@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -26,14 +25,12 @@ export interface EventData {
 }
 
 interface PreviewCardProps {
-  initialData: EventData
   editedData: EventData
   onDataChange: (field: keyof EventData, value: string) => void
   className?: string
 }
 
 export function PreviewCard({
-  initialData,
   editedData,
   onDataChange,
   className,
