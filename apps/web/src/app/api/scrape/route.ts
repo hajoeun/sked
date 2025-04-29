@@ -1,32 +1,35 @@
 import { NextResponse } from 'next/server';
-import { fetchSkedApi } from '@/lib/api'; // 이전에 만든 API 유틸리티
+import { Scraper } from '@sked/scrape-core';
 
 export async function POST(request: Request) {
+  const scraper = new Scraper(process.env.FIRECRAWL_API_KEY);
+
   try {
     const { url } = await request.json();
-
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+    
+    if (!url) {
+      return NextResponse.json({ error: 'URL 쿼리 파라미터가 필요합니다.' }, { status: 400 });
     }
 
-    console.log(`[Proxy API] Calling backend /api/scrape for URL: ${url}`);
+    // URL 유효성 검사 (간단하게)
+    try {
+      new URL(url);
+    } catch {
+      return NextResponse.json({ error: '유효하지 않은 URL 형식입니다.' }, { status: 400 });
+    }
 
-    // 실제 백엔드 /api/scrape 호출 (lib/api.ts 사용, API 키는 서버 환경에서 자동 포함됨)
-    const backendResponse = await fetchSkedApi('/api/scrape', {
-        method: 'POST', // 실제 백엔드 API 메소드에 맞춰야 함 (spec.md 에는 GET으로 되어있으나, URL을 body로 받는다면 POST가 적합)
-        body: JSON.stringify({ url }),
-    });
-
-    // 백엔드 응답을 그대로 클라이언트에 전달
-    const data = await backendResponse.json(); // 백엔드가 JSON을 반환한다고 가정
-
-    console.log(`[Proxy API] Received response from backend /api/scrape`);
-
-    return NextResponse.json(data);
+    // [Dependency Inversion] Scraper 인스턴스를 주입받아 사용
+    const markdownContent = await scraper.scrapeUrl(url);
+    
+    // 성공 시 마크다운 텍스트 반환 (JSON 객체로 감싸서)
+    return NextResponse.json({ markdown: markdownContent }, { status: 200 });
 
   } catch (error) {
-    console.error('[Proxy API Error - /api/scrape]:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: 'Failed to scrape URL', details: errorMessage }, { status: 500 });
+    console.error('Error in /api/scrape:', error); // 에러 로깅 추가
+    if (error instanceof Error) {
+      // 스크래핑 자체 오류 메시지 포함
+      return NextResponse.json({ error: '스크래핑 처리 중 오류가 발생했습니다.', details: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: '알 수 없는 스크래핑 오류가 발생했습니다.' }, { status: 500 });
   }
 } 

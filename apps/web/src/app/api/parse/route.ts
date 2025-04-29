@@ -1,32 +1,38 @@
 import { NextResponse } from 'next/server';
-import { fetchSkedApi } from '@/lib/api';
+import { EventParser } from '@sked/parse-core';
 
 export async function POST(request: Request) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY is not configured');
+  }
+  
+  const parser = new EventParser({ apiKey: process.env.OPENAI_API_KEY });
+
   try {
     const { text } = await request.json();
-
-    if (!text || typeof text !== 'string') {
-      return NextResponse.json({ error: 'Text is required' }, { status: 400 });
+    
+    if (!text) {
+      return NextResponse.json({ error: '텍스트 내용이 없습니다.' }, { status: 400 });
     }
 
-    console.log(`[Proxy API] Calling backend /api/parse`);
+    // API 키가 없는 경우 목 데이터 반환
+    if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === 'sk-your-actual-openai-api-key-here') {
+      console.log('⚠️ API 키가 없어 목 데이터를 반환합니다.');
+      return NextResponse.json({
+        title: "회식",
+        description: "팀 월간 정기 회식",
+        date: "2024-04-30",
+        time: "19:00",
+        location: "서울시 강남구 역삼동 123번지 맛있는 식당"
+      });
+    }
 
-    // 실제 백엔드 /api/parse 호출
-    const backendResponse = await fetchSkedApi('/api/parse', {
-      method: 'POST',
-      body: JSON.stringify({ text }),
-    });
-
-    // 백엔드 응답을 그대로 클라이언트에 전달
-    const data = await backendResponse.json();
-
-    console.log(`[Proxy API] Received response from backend /api/parse`);
-
-    return NextResponse.json(data);
-
+    const eventData = await parser.parseEvent(text);
+    return NextResponse.json(eventData, { status: 200 });
   } catch (error) {
-    console.error('[Proxy API Error - /api/parse]:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-    return NextResponse.json({ error: 'Failed to parse text', details: errorMessage }, { status: 500 });
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: '알 수 없는 오류가 발생했습니다.' }, { status: 500 });
   }
 } 
