@@ -1,15 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "globalEnv": ["NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "build/**"]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", ".next/**", "build/**", "!.next/cache/**"],
+      "env": ["OPENAI_API_KEY", "FIRECRAWL_API_KEY", "SKED_API_KEY", "PORT", "HOST", "CORS_ORIGIN"]
     },
-    "lint": {},
+    "lint": {
+      "env": [],
+      "outputs": []
+    },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "env": ["OPENAI_API_KEY", "FIRECRAWL_API_KEY", "SKED_API_KEY", "PORT", "HOST", "CORS_ORIGIN"]
     },
     "clean": {
       "cache": false
