@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 
 // Metadata interface matching the backend response
 export interface LinkMetadata {
